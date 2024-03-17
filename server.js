@@ -6,28 +6,50 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
+const servers = ['http://localhost:3001', 'http://localhost:3002'];
+
 io.on('connection', (socket) => {
     console.log('Cliente WebSocket conectado');
 
     const performHealthCheck = () => {
-        const servers = ['http://localhost:3001', 'http://localhost:3002'];
+        servers.forEach(serverUrl => {
+            const formattedTime = new Date().toISOString();
 
-        for (const server of servers) {
-            const startTime = Date.now(); // Iniciar el cronómetro
+            const options = {
+                timeout: 5000, // Tiempo de espera para la respuesta del servidor (en milisegundos)
+            };
 
-            http.get(server, (res) => {
-                const responseTime = Date.now() - startTime;
-                console.log(`[${new Date().toISOString()}] Health check for ${server}: ${res.statusCode} - Response Time: ${responseTime}ms`);
-                socket.emit('healthCheck', { server, status: 'OK', responseTime });
-            }).on('error', (error) => {
-                console.error(`[${new Date().toISOString()}] Error en el monitoreo del servidor backend ${server}: ${error.message}`);
-                socket.emit('healthCheck', { server, status: 'Error' });
+            const request = http.get(serverUrl + '/ping', options, (res) => {
+                if (res.statusCode === 200) {
+                    console.log(`[${formattedTime}] Se realizó el ping para ${serverUrl} - Éxito`);
+                    socket.emit('healthCheck', { server: serverUrl, status: 'OK' });
+                } else {
+                    console.log(`[${formattedTime}] Se realizó el ping para ${serverUrl} - Falló - Estado: ${res.statusCode}`);
+                    socket.emit('healthCheck', { server: serverUrl, status: 'Error' });
+                }
             });
-        }
+
+            request.on('error', (error) => {
+                console.error(`[${formattedTime}] Error en el ping para ${serverUrl}: ${error.message}`);
+                socket.emit('healthCheck', { server: serverUrl, status: 'Error' });
+            });
+
+            request.on('timeout', () => {
+                console.error(`[${formattedTime}] Tiempo de espera agotado para ${serverUrl}`);
+                socket.emit('healthCheck', { server: serverUrl, status: 'Timeout' });
+            });
+        });
     };
 
-    const healthCheckInterval = 30000; // Intervalo de 30 segundos
-    setInterval(performHealthCheck, healthCheckInterval);
+    const healthCheckInterval = 10000; 
+
+    performHealthCheck();
+    const intervalId = setInterval(performHealthCheck, healthCheckInterval);
+
+    socket.on('disconnect', () => {
+        console.log('Cliente WebSocket desconectado');
+        clearInterval(intervalId); 
+    });
 });
 
 const PORT = process.env.PORT || 4000;
