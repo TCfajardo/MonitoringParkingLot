@@ -2,7 +2,6 @@ const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 const axios = require('axios');
-const axiosRetry = require('axios-retry');
 const dotenv = require('dotenv');
 
 dotenv.config();
@@ -11,11 +10,8 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-const servers = ['http://localhost:3001', 'http://localhost:3002'];
-const healthCheckInterval = 5000; // Realizar el chequeo de salud cada 5 segundos
-
-// Configuración de axios-retry para manejar automáticamente los reintentos de las solicitudes HTTP
-axiosRetry(axios, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
+const servers = ['http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003'];
+const healthCheckInterval = 10000; // Realizar el chequeo de salud cada 5 segundos
 
 // Función para realizar el chequeo de salud
 const performHealthCheck = async () => {
