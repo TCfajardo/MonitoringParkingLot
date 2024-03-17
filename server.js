@@ -1,55 +1,69 @@
 const express = require('express');
 const http = require('http');
-const socketIo = require('socket.io');
+const WebSocket = require('ws');
+const axios = require('axios');
+const axiosRetry = require('axios-retry');
+const dotenv = require('dotenv');
+
+dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
+const wss = new WebSocket.Server({ server });
 
 const servers = ['http://localhost:3001', 'http://localhost:3002'];
+const healthCheckInterval = 5000; // Realizar el chequeo de salud cada 5 segundos
 
-io.on('connection', (socket) => {
+// Configuración de axios-retry para manejar automáticamente los reintentos de las solicitudes HTTP
+axiosRetry(axios, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
+
+// Función para realizar el chequeo de salud
+const performHealthCheck = async () => {
+    const healthStatus = [];
+
+    for (const serverUrl of servers) {
+        const formattedTime = new Date().toISOString();
+        const options = { timeout: 5000 }; // Tiempo de espera para la respuesta del servidor (en milisegundos)
+
+        try {
+            const response = await axios.get(serverUrl + '/ping', options);
+            const status = response.status === 200 ? 'Activo' : 'Inactivo';
+            healthStatus.push({ server: serverUrl, status });
+            console.log(`[${formattedTime}] Se realizó el ping para ${serverUrl} - ${status}`);
+        } catch (error) {
+            console.error(`[${formattedTime}] Error en el ping para ${serverUrl}: ${error.message}`);
+            healthStatus.push({ server: serverUrl, status: 'Inactivo' });
+        }
+    }
+
+    // Emitir el estado de salud a todos los clientes WebSocket
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({ type: 'healthCheck', data: healthStatus }));
+        }
+    });
+};
+
+// Manejo de conexión de clientes WebSocket
+wss.on('connection', (ws) => {
     console.log('Cliente WebSocket conectado');
 
-    const performHealthCheck = () => {
-        servers.forEach(serverUrl => {
-            const formattedTime = new Date().toISOString();
-
-            const options = {
-                timeout: 5000, // Tiempo de espera para la respuesta del servidor (en milisegundos)
-            };
-
-            const request = http.get(serverUrl + '/ping', options, (res) => {
-                if (res.statusCode === 200) {
-                    console.log(`[${formattedTime}] Se realizó el ping para ${serverUrl} - Éxito`);
-                    socket.emit('healthCheck', { server: serverUrl, status: 'OK' });
-                } else {
-                    console.log(`[${formattedTime}] Se realizó el ping para ${serverUrl} - Falló - Estado: ${res.statusCode}`);
-                    socket.emit('healthCheck', { server: serverUrl, status: 'Error' });
-                }
-            });
-
-            request.on('error', (error) => {
-                console.error(`[${formattedTime}] Error en el ping para ${serverUrl}: ${error.message}`);
-                socket.emit('healthCheck', { server: serverUrl, status: 'Error' });
-            });
-
-            request.on('timeout', () => {
-                console.error(`[${formattedTime}] Tiempo de espera agotado para ${serverUrl}`);
-                socket.emit('healthCheck', { server: serverUrl, status: 'Timeout' });
-            });
-        });
-    };
-
-    const healthCheckInterval = 10000; 
-
+    // Realizar el primer chequeo de salud al conectar un cliente
     performHealthCheck();
+
+    // Realizar el chequeo de salud periódicamente
     const intervalId = setInterval(performHealthCheck, healthCheckInterval);
 
-    socket.on('disconnect', () => {
+    // Manejo de desconexión de clientes WebSocket
+    ws.on('close', () => {
         console.log('Cliente WebSocket desconectado');
-        clearInterval(intervalId); 
+        clearInterval(intervalId); // Detener la ejecución del intervalo al desconectar un cliente
     });
+});
+
+// Manejo de errores de servidor HTTP
+server.on('error', (err) => {
+    console.error('Error en el servidor HTTP:', err);
 });
 
 const PORT = process.env.PORT || 4000;
