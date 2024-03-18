@@ -10,8 +10,10 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-const servers = ['http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003'];
-const healthCheckInterval = 5000; 
+const servers = process.env.SERVERS.split(',');
+const healthCheckInterval = process.env.HEALTH_CHECK_INTERVAL || 5000; 
+
+const services = process.env.SERVICES.split(','); 
 
 const performHealthCheck = async () => {
     const healthStatus = [];
@@ -29,6 +31,7 @@ const performHealthCheck = async () => {
             console.error(`[${formattedTime}] Error en el ping para ${serverUrl}: ${error.message}`);
             healthStatus.push({ server: serverUrl, status: 'Inactivo' });
         }
+        
     }
 
     // Emitir el estado de salud a todos los clientes WebSocket
