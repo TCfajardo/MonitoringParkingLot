@@ -11,15 +11,14 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 const servers = ['http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003'];
-const healthCheckInterval = 10000; // Realizar el chequeo de salud cada 5 segundos
+const healthCheckInterval = 5000; 
 
-// Función para realizar el chequeo de salud
 const performHealthCheck = async () => {
     const healthStatus = [];
 
     for (const serverUrl of servers) {
         const formattedTime = new Date().toISOString();
-        const options = { timeout: 5000 }; // Tiempo de espera para la respuesta del servidor (en milisegundos)
+        const options = { timeout: 5000 }; 
 
         try {
             const response = await axios.get(serverUrl + '/ping', options);
@@ -57,7 +56,6 @@ wss.on('connection', (ws) => {
     });
 });
 
-// Manejo de errores de servidor HTTP
 server.on('error', (err) => {
     console.error('Error en el servidor HTTP:', err);
 });
