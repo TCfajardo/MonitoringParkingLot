@@ -3,6 +3,7 @@ const http = require('http');
 const WebSocket = require('ws');
 const axios = require('axios');
 const dotenv = require('dotenv');
+const { spawn } = require('child_process');
 
 dotenv.config();
 
@@ -18,7 +19,7 @@ const performHealthCheck = async () => {
 
     for (const serverUrl of servers) {
         const formattedTime = new Date().toISOString();
-        const options = { timeout: 5000 }; 
+        const options = { timeout: healthCheckInterval }; 
 
         try {
             const response = await axios.get(serverUrl + '/ping', options);
@@ -38,6 +39,50 @@ const performHealthCheck = async () => {
         }
     });
 };
+
+const checkAndLaunchServers = async () => {
+    const inactiveServers = [];
+
+    for (const serverUrl of servers) {
+        const formattedTime = new Date().toISOString();
+        const options = { timeout: healthCheckInterval }; 
+
+        try {
+            const response = await axios.get(serverUrl + '/ping', options);
+            const status = response.status === 200 ? 'Activo' : 'Inactivo';
+            inactiveServers.push({ server: serverUrl, status });
+            console.log(`[${formattedTime}] Se realizó el ping para ${serverUrl} - ${status}`);
+        } catch (error) {
+            console.error(`[${formattedTime}] Error en el ping para ${serverUrl}: ${error.message}`);
+            inactiveServers.push({ server: serverUrl, status: 'Inactivo' });
+        }
+    }
+
+    // Realizar el lanzamiento de servidores inactivos
+    if (inactiveServers.length > 0) {
+        console.log(`Los siguientes servidores están inactivos o tienen tiempos de respuesta altos: ${inactiveServers}`);
+        
+        // Ejecutar el script para lanzar servidores
+        const { spawn } = require('child_process');
+        const newServerProcess = spawn('node', ['tu_script_de_servidor.js']);
+        
+        newServerProcess.stdout.on('data', (data) => {
+            console.log(`Nuevo servidor: ${data}`);
+        });
+        
+        newServerProcess.stderr.on('data', (data) => {
+            console.error(`Error en el nuevo servidor: ${data}`);
+        });
+    } else {
+        console.log('Todos los servidores están activos y respondiendo dentro del tiempo esperado.');
+    }
+};
+
+
+// Llama a la función para verificar y lanzar servidores al inicio y luego en intervalos regulares
+checkAndLaunchServers();
+setInterval(checkAndLaunchServers, healthCheckInterval);
+
 
 // Manejo de conexión de clientes WebSocket
 wss.on('connection', (ws) => {
