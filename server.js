@@ -64,7 +64,7 @@ const checkAndLaunchServers = async () => {
         
         // Ejecutar el script para lanzar servidores
         const { spawn } = require('child_process');
-        const newServerProcess = spawn('node', ['tu_script_de_servidor.js']);
+        const newServerProcess = spawn('node', ['script.txt']);
         
         newServerProcess.stdout.on('data', (data) => {
             console.log(`Nuevo servidor: ${data}`);
