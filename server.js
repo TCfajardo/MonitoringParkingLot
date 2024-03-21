@@ -74,7 +74,7 @@ const checkAndLaunchServers = async () => {
         console.log('Contenedores de Servidores Activos: ', activeServerContainers.length);
 
         // Realizar el lanzamiento de servidores inactivos (si es necesario)
-        if (activeServerContainers.length < 3) {
+        if (activeServerContainers.length >= 3) {
             console.log('No se lanzarán nuevos servidores.');
 
             const scriptPath = 'script.bat';
