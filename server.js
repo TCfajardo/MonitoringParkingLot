@@ -7,8 +7,6 @@ const { spawn } = require('child_process');
 
 const Docker = require('dockerode');
 const docker = new Docker({ host: 'http://localhost', port: 2375 });
-const { spawn } = require('child_process');
-const fs = require('fs');
 
 dotenv.config();
 
