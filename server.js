@@ -15,21 +15,46 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-const servers = ['http://localhost:4001', 'http://localhost:4002', 'http://localhost:4003'];
-const healthCheckInterval = 5000; 
+const servers = process.env.SERVERS.split(',');
+const healthCheckInterval = process.env.HEALTH_CHECK_INTERVAL || 5000;
+
+const responseTimes = [];
 
 const performHealthCheck = async () => {
     const healthStatus = [];
 
     for (const serverUrl of servers) {
         const formattedTime = new Date().toISOString();
-        const options = { timeout: healthCheckInterval }; 
+        const options = { timeout: 5000 };
 
         try {
+            const startTime = Date.now();
+
             const response = await axios.get(serverUrl + '/ping', options);
             const status = response.status === 200 ? 'Activo' : 'Inactivo';
-            healthStatus.push({ server: serverUrl, status });
-            console.log(`[${formattedTime}] Se realizó el ping para ${serverUrl} - ${status}`);
+            const responseTime = Date.now();
+            const timeDifference = responseTime - startTime;
+            console.log(`[${formattedTime}] Se realizó el ping para ${serverUrl} - ${status} - latencia : ${timeDifference}`);
+
+            const pingAndRequestsResponse = await axios.get(`${serverUrl}/ping-and-requests`);
+            const { totalRequests, errorRequests, postRequests, getRequests, patchRequests } = pingAndRequestsResponse.data;
+            console.log(`[${formattedTime}] totalRequests : ${totalRequests} - errorRequests : ${errorRequests} - POST/GET/PATCH ${postRequests}  ${getRequests} ${patchRequests} `);
+
+            responseTimes.push({ server: serverUrl, timeDifference });
+
+            healthStatus.push(
+                {
+                    server:
+                        serverUrl,
+                    status,
+                    totalRequests,
+                    errorRequests,
+                    postRequests,
+                    getRequests,
+                    patchRequests,
+                    responseTimes
+                });
+
         } catch (error) {
             console.error(`[${formattedTime}] Error en el ping para ${serverUrl}: ${error.message}`);
             healthStatus.push({ server: serverUrl, status: 'Inactivo' });
@@ -44,6 +69,14 @@ const performHealthCheck = async () => {
     });
 };
 
+// Emitir el estado de salud a todos los clientes WebSocket
+wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify({ type: 'healthCheck', data: healthStatus }));
+    }
+});
+
+
 const checkAndLaunchServers = async () => {
     // Función para obtener los contenedores y verificar si están activos
     const checkContainers = () => {
@@ -56,7 +89,7 @@ const checkAndLaunchServers = async () => {
                     // Filtrar los contenedores que contengan "server" en el nombre
                     const serverContainers = containers.filter(container => container.Names.some(name => name.includes('server')));
                     const activeServerContainers = serverContainers.filter(container => container.State === 'running');
-                    
+
                     // Verificar si hay al menos 3 contenedores activos
                     if (activeServerContainers.length < 3) {
                         runScript2();
@@ -98,7 +131,7 @@ const checkAndLaunchServers = async () => {
 function runScript2() {
     console.log('Hay menos de 3 Contenedores Servidores');
     console.log('Se lanzarán nuevos Contenedores de Servidores');
-    
+
     const scriptPath = 'script2.bat';
 
     // Ejecuta el script2.bat utilizando spawn
