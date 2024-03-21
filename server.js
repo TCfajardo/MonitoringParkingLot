@@ -3,10 +3,11 @@ const http = require('http');
 const WebSocket = require('ws');
 const axios = require('axios');
 const dotenv = require('dotenv');
-const { spawn } = require('child_process');
 
 const Docker = require('dockerode');
 const docker = new Docker({ host: 'http://localhost', port: 2375 });
+const { spawn } = require('child_process');
+const fs = require('fs');
 
 dotenv.config();
 
@@ -14,10 +15,8 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-const servers = process.env.SERVERS.split(',');
-const healthCheckInterval = process.env.HEALTH_CHECK_INTERVAL || 5000; 
-
-const responseTimes = [];
+const servers = ['http://localhost:4001', 'http://localhost:4002', 'http://localhost:4003'];
+const healthCheckInterval = 5000; 
 
 const performHealthCheck = async () => {
     const healthStatus = [];
@@ -27,32 +26,10 @@ const performHealthCheck = async () => {
         const options = { timeout: healthCheckInterval }; 
 
         try {
-            const startTime = Date.now();
-
             const response = await axios.get(serverUrl + '/ping', options);
             const status = response.status === 200 ? 'Activo' : 'Inactivo';
-            const responseTime = Date.now();
-            const timeDifference = responseTime - startTime;
-            console.log(`[${formattedTime}] Se realizó el ping para ${serverUrl} - ${status} - latencia : ${timeDifference}`);
-
-            const pingAndRequestsResponse = await axios.get(`${serverUrl}/ping-and-requests`);
-            const { totalRequests, errorRequests, postRequests, getRequests, patchRequests} = pingAndRequestsResponse.data;
-            console.log(`[${formattedTime}] totalRequests : ${totalRequests} - errorRequests : ${errorRequests} - POST/GET/PATCH ${postRequests}  ${getRequests} ${patchRequests} `);
-
-            responseTimes.push({ server: serverUrl, timeDifference });
-
-            healthStatus.push(
-                { server: 
-                    serverUrl, 
-                    status, 
-                    totalRequests, 
-                    errorRequests, 
-                    postRequests, 
-                    getRequests, 
-                    patchRequests,
-                    responseTimes
-                });
-
+            healthStatus.push({ server: serverUrl, status });
+            console.log(`[${formattedTime}] Se realizó el ping para ${serverUrl} - ${status}`);
         } catch (error) {
             console.error(`[${formattedTime}] Error en el ping para ${serverUrl}: ${error.message}`);
             healthStatus.push({ server: serverUrl, status: 'Inactivo' });
