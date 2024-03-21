@@ -1,20 +1,22 @@
 [
 {
-"CONTAINER ID": "195257d03219",
+"CONTAINER ID": "9b3e6b4ed93a",
 "PORTS": "0.0.0.0:4004->4004/tcp",
 "NAME": "server4",
 "IP": "172.17.0.6"
-},
+}
+,
 {
-"CONTAINER ID": "46c386b0bffc",
+"CONTAINER ID": "c5c4e49fa285",
 "PORTS": "0.0.0.0:4003->4003/tcp",
 "NAME": " 4004/tcp",
 "IP": "172.17.0.5"
-},
+}
+,
 {
-"CONTAINER ID": "ca7c26113b4f",
+"CONTAINER ID": "17b1f3513146",
 "PORTS": "0.0.0.0:4001->4001/tcp",
 "NAME": "server1",
 "IP": "172.17.0.4"
-},
+}
 ]
