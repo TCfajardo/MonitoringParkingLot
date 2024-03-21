@@ -58,21 +58,10 @@ const checkAndLaunchServers = async () => {
                     const activeServerContainers = serverContainers.filter(container => container.State === 'running');
                     
                     // Verificar si hay al menos 3 contenedores activos
-                    if (activeServerContainers.length >= 3) {
-                        resolve(activeServerContainers);
+                    if (activeServerContainers.length < 3) {
+                        runScript2();
                     } else {
-                        console.log('Hay menos de 3 Contenedores Servidores');
-                        console.log('Se lanzaran nuevos Contenedores de Servidores');
-                        const scriptPath = 'script2.bat';
-                        const batProcess = spawn('cmd', ['/c', scriptPath]);
-
-                        batProcess.stdout.on('data', (data) => {
-                            console.log(`${data}`);
-                        });
-
-                        batProcess.stderr.on('data', (data) => {
-                            console.error(`Error en el nuevo servidor: ${data}`);
-                        });
+                        resolve(activeServerContainers);
                     }
                 }
             });
@@ -85,7 +74,7 @@ const checkAndLaunchServers = async () => {
         console.log('Contenedores de Servidores Activos: ', activeServerContainers.length);
 
         // Realizar el lanzamiento de servidores inactivos (si es necesario)
-        if (activeServerContainers.length < 6) {
+        if (activeServerContainers.length < 3) {
             console.log('No se lanzarán nuevos servidores.');
 
             const scriptPath = 'script.bat';
@@ -99,12 +88,37 @@ const checkAndLaunchServers = async () => {
                 console.error(`Error en el nuevo servidor: ${data}`);
             });
         } else {
-            console.log('No hay al menos 3 servidores activos, se lanzarán nuevos servidores.');
+            console.log('Hay al menos 3 servidores activos, No se lanzarán nuevos servidores.');
         }
     } catch (error) {
         console.error('Error al verificar los contenedores:', error);
     }
 };
+
+function runScript2() {
+    console.log('Hay menos de 3 Contenedores Servidores');
+    console.log('Se lanzarán nuevos Contenedores de Servidores');
+    
+    const scriptPath = 'script2.bat';
+
+    // Ejecuta el script2.bat utilizando spawn
+    const batProcess = spawn('cmd', ['/c', scriptPath]);
+
+    // Captura y muestra la salida estándar del proceso
+    batProcess.stdout.on('data', (data) => {
+        console.log(`Salida estándar: ${data}`);
+    });
+
+    // Captura y muestra la salida de error del proceso
+    batProcess.stderr.on('data', (data) => {
+        console.error(`Error en el nuevo servidor: ${data}`);
+    });
+
+    // Maneja los eventos de cierre del proceso
+    batProcess.on('close', (code) => {
+        console.log(`Proceso de script2.bat finalizado con código de salida ${code}`);
+    });
+}
 
 // Llama a la función para verificar y lanzar servidores al inicio y luego en intervalos regulares
 checkAndLaunchServers();
