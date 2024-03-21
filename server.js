@@ -11,8 +11,10 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-const servers = ['http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003'];
-const healthCheckInterval = 5000; 
+const servers = process.env.SERVERS.split(',');
+const healthCheckInterval = process.env.HEALTH_CHECK_INTERVAL || 5000; 
+
+const responseTimes = [];
 
 const performHealthCheck = async () => {
     const healthStatus = [];
@@ -22,10 +24,32 @@ const performHealthCheck = async () => {
         const options = { timeout: healthCheckInterval }; 
 
         try {
+            const startTime = Date.now();
+
             const response = await axios.get(serverUrl + '/ping', options);
             const status = response.status === 200 ? 'Activo' : 'Inactivo';
-            healthStatus.push({ server: serverUrl, status });
-            console.log(`[${formattedTime}] Se realizó el ping para ${serverUrl} - ${status}`);
+            const responseTime = Date.now();
+            const timeDifference = responseTime - startTime;
+            console.log(`[${formattedTime}] Se realizó el ping para ${serverUrl} - ${status} - latencia : ${timeDifference}`);
+
+            const pingAndRequestsResponse = await axios.get(`${serverUrl}/ping-and-requests`);
+            const { totalRequests, errorRequests, postRequests, getRequests, patchRequests} = pingAndRequestsResponse.data;
+            console.log(`[${formattedTime}] totalRequests : ${totalRequests} - errorRequests : ${errorRequests} - POST/GET/PATCH ${postRequests}  ${getRequests} ${patchRequests} `);
+
+            responseTimes.push({ server: serverUrl, timeDifference });
+
+            healthStatus.push(
+                { server: 
+                    serverUrl, 
+                    status, 
+                    totalRequests, 
+                    errorRequests, 
+                    postRequests, 
+                    getRequests, 
+                    patchRequests,
+                    responseTimes
+                });
+
         } catch (error) {
             console.error(`[${formattedTime}] Error en el ping para ${serverUrl}: ${error.message}`);
             healthStatus.push({ server: serverUrl, status: 'Inactivo' });
