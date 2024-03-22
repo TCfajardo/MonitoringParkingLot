@@ -1,22 +1,36 @@
 [
 {
-"CONTAINER ID": "9b3e6b4ed93a",
-"PORTS": "0.0.0.0:4004->4004/tcp",
-"NAME": "server4",
-"IP": "172.17.0.6"
-}
-,
-{
-"CONTAINER ID": "c5c4e49fa285",
-"PORTS": "0.0.0.0:4003->4003/tcp",
-"NAME": " 4004/tcp",
-"IP": "172.17.0.5"
-}
-,
-{
-"CONTAINER ID": "17b1f3513146",
-"PORTS": "0.0.0.0:4001->4001/tcp",
-"NAME": "server1",
+"CONTAINER ID": "f0d0f88f7c08",
+"PORTS": "4004/tcp",
+"NAME": " 0.0.0.0:4071->4071/tcp",
 "IP": "172.17.0.4"
+}
+,
+{
+"CONTAINER ID": "52763c13516a",
+"PORTS": "4004/tcp",
+"NAME": " 0.0.0.0:4070->4070/tcp",
+"IP": "172.17.0.3"
+}
+,
+{
+"CONTAINER ID": "9f27d123a286",
+"PORTS": "0.0.0.0:3003->3003/tcp",
+"NAME": "server3",
+"IP": "172.17.0.8"
+}
+,
+{
+"CONTAINER ID": "abb3e7ce7fe0",
+"PORTS": "0.0.0.0:3002->3002/tcp",
+"NAME": "server2",
+"IP": "172.17.0.7"
+}
+,
+{
+"CONTAINER ID": "e4441dd76fc2",
+"PORTS": "0.0.0.0:3001->3001/tcp",
+"NAME": "server1",
+"IP": "172.17.0.5"
 }
 ]
