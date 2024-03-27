@@ -23,6 +23,9 @@ const healthCheckInterval = process.env.HEALTH_CHECK_INTERVAL || 5000;
 
 const responseTimes = [];
 
+const INITIAL_CHECK_DELAY = 60000;
+app.use(express.json());
+
 const performHealthCheck = async () => {
     const healthStatus = [];
 
@@ -74,37 +77,28 @@ const performHealthCheck = async () => {
 };
 
 
-// Función para ejecutar el script y generar el archivo .json con los servidores activos
-function runScript() {
-    exec('cmd /c Script.bat', (error, stdout, stderr) => {
-        if (error) {
-            console.error(`Error al ejecutar el script: ${error.message}`);
-            return;
-        }
-        if (stderr) {
-            console.error(`Error de salida estándar del script: ${stderr}`);
-            return;
-        }
-        console.log(`Salida del script: ${stdout}`);
-        extractIPPorts(); // Después de ejecutar el script, extraemos las IPs y puertos
-    });
-}
-
-// Función para extraer IPs y puertos del archivo container.json
-function extractIPPorts() {
+function updateServers(ip, port) {
     try {
-        const containerData = JSON.parse(fs.readFileSync('containers.json', 'utf8'));
-        const ipPorts = containerData.map(container => `http://10.4.75.190:${container.PORTS.split('->')[0].split(':')[1]}`);
-        console.log("Lista de IP y Puertos:");
-        console.log(ipPorts); // Imprimir la lista de IPs y puertos en la consola
-        SERVERS = ipPorts;
-        console.log("SERVERS:", SERVERS);
+        const newServer = `http://${ip}:${port}`;
+        if (!SERVERS.includes(newServer)) {
+            SERVERS.push(newServer);
+            console.log("Lista de IP y Puertos actualizada:");
+            console.log(SERVERS);
+        }
     } catch (error) {
-        console.error('Error al leer o parsear el archivo containers.json:', error);
-        // Puedes manejar el error aquí, por ejemplo, mostrando un mensaje al usuario o realizando una acción alternativa.
-        return ''; // Si hay un error, devuelve una cadena vacía
+        console.error('Error al actualizar SERVERS:', error);
     }
 }
+
+app.post('/register-node', (req, res) => {
+    const { ip, port } = req.body;
+    
+    console.log(`Nodo registrado: IP ${ip}, Puerto ${port}`);
+    
+    updateServers(ip, port);
+    
+    res.status(200).send('Nodo registrado exitosamente');
+});
 
 // Función para verificar y lanzar servidores al inicio y luego en intervalos regulares
 const checkAndLaunchServers = async () => {
@@ -148,16 +142,15 @@ function runScript2() {
 
 
 // Llama a la función para verificar y lanzar servidores al inicio y luego en intervalos regulares
-checkAndLaunchServers();
-setInterval(runScript, 10000);
-setInterval(checkAndLaunchServers, healthCheckInterval);
+setTimeout(() => {
+    checkAndLaunchServers();
+    setInterval(checkAndLaunchServers, healthCheckInterval);
+}, INITIAL_CHECK_DELAY);
 
 
 // Manejo de conexión de clientes WebSocket
 wss.on('connection', (ws) => {
     console.log('Cliente WebSocket conectado');
-
-    runScript();
     // Realizar el primer chequeo de salud al conectar un cliente
     performHealthCheck();
 
