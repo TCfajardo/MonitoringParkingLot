@@ -19,7 +19,7 @@ const wss = new WebSocket.Server({ server });
 
 let SERVERS = [];
 
-const healthCheckInterval = process.env.HEALTH_CHECK_INTERVAL || 5000;
+const healthCheckInterval = process.env.HEALTH_CHECK_INTERVAL || 4000;
 
 const responseTimes = [];
 
@@ -30,10 +30,8 @@ const performHealthCheck = async () => {
     const healthStatus = [];
 
     for (const serverUrl of SERVERS) {
-        console.log("+++++++++++++++++ " + SERVERS)
-        console.log("+++++++++++++++++ " + serverUrl)
         const formattedTime = new Date().toISOString();
-        const options = { timeout: 5000 };
+        const options = { timeout: 6000 };
 
         try {
             const startTime = Date.now();
@@ -79,10 +77,11 @@ const performHealthCheck = async () => {
 
 function updateServers(ip, port) {
     try {
+        const formattedTime = new Date().toISOString();
         const newServer = `http://${ip}:${port}`;
         if (!SERVERS.includes(newServer)) {
             SERVERS.push(newServer);
-            console.log("Lista de IP y Puertos actualizada:");
+            console.log(`[${formattedTime}], Lista de IP y Puertos actualizada:`);
             console.log(SERVERS);
         }
     } catch (error) {
@@ -92,8 +91,8 @@ function updateServers(ip, port) {
 
 app.post('/register-node', (req, res) => {
     const { ip, port } = req.body;
-    
-    console.log(`Nodo registrado: IP ${ip}, Puerto ${port}`);
+    const formattedTime = new Date().toISOString();
+    console.log(`[${formattedTime}] Nodo registrado: IP ${ip}, Puerto ${port}`);
     
     updateServers(ip, port);
     
@@ -102,12 +101,13 @@ app.post('/register-node', (req, res) => {
 
 // Función para verificar y lanzar servidores al inicio y luego en intervalos regulares
 const checkAndLaunchServers = async () => {
+    const formattedTime = new Date().toISOString();
     try {
         if (SERVERS.length < 3) {
-            console.log('Se lanzarán nuevos servidores.');
+            console.log(`[${formattedTime}] Se lanzarán nuevos servidores.`);
             runScript2(); // Llama al método para ejecutar el script2.bat y lanzar nuevos servidores
         } else {
-            console.log('Hay al menos 3 servidores activos, no se lanzarán nuevos servidores.');
+            console.log(`[${formattedTime}] Hay al menos 3 servidores activos, no se lanzarán nuevos servidores.`);
         }
     } catch (error) {
         console.error('Error al verificar y lanzar servidores:', error);
@@ -116,8 +116,8 @@ const checkAndLaunchServers = async () => {
 
 // Función para ejecutar el script2.bat y lanzar nuevos servidores
 function runScript2() {
-    console.log('Hay menos de 3 Contenedores Servidores');
-    console.log('Se lanzarán nuevos Contenedores de Servidores');
+    const formattedTime = new Date().toISOString();
+    console.log(`[${formattedTime}] Hay menos de 3 Contenedores Servidores. Se lanzarán nuevos Contenedores de Servidores`);
 
     const scriptPath = 'script2.bat';
 
@@ -131,15 +131,14 @@ function runScript2() {
 
     // Captura y muestra la salida de error del proceso
     batProcess.stderr.on('data', (data) => {
-        console.error(`Error en el nuevo servidor: ${data}`);
+        console.error(`[${formattedTime}] Error al lanzar nuevo servidor nuevo servidor: ${data}`);
     });
 
     // Maneja los eventos de cierre del proceso
     batProcess.on('close', (code) => {
-        console.log(`Proceso de script2.bat finalizado con código de salida ${code}`);
+        console.log(`[${formattedTime}] Proceso de script2.bat finalizado con código de salida ${code}`);
     });
 }
-
 
 // Llama a la función para verificar y lanzar servidores al inicio y luego en intervalos regulares
 setTimeout(() => {
@@ -150,17 +149,17 @@ setTimeout(() => {
 
 // Manejo de conexión de clientes WebSocket
 wss.on('connection', (ws) => {
-    console.log('Cliente WebSocket conectado');
+    const formattedTime = new Date().toISOString();
+    console.log(`[${formattedTime}] Cliente WebSocket conectado`);
     // Realizar el primer chequeo de salud al conectar un cliente
     performHealthCheck();
 
     // Realizar el chequeo de salud periódicamente
     const intervalId = setInterval(performHealthCheck, healthCheckInterval);
 
-    // Manejo de desconexión de clientes WebSocket
     ws.on('close', () => {
-        console.log('Cliente WebSocket desconectado');
-        clearInterval(intervalId); // Detener la ejecución del intervalo al desconectar un cliente
+        console.log(`[${formattedTime}] Cliente WebSocket desconectado`);
+        clearInterval(intervalId);
     });
 });
 
