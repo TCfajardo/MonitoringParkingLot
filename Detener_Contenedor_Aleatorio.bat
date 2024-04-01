@@ -1,21 +1,18 @@
 @echo off
-setlocal enabledelayedexpansion
+setlocal
 
-REM Variable de estado para verificar si se ha detenido al menos un contenedor
-set "CONTAINER_STOPPED=false"
-
-REM Buscar los IDs de todos los contenedores que contengan la palabra "server" en su nombre
-for /f "tokens=1,2" %%i in ('docker ps -a --format "{{.ID}} {{.Names}}" ^| findstr "server"') do (
-    set "CONTAINER_ID=%%i"
-    set "CONTAINER_NAME=%%j"
-    echo Deteniendo contenedor: !CONTAINER_NAME!
-    docker stop !CONTAINER_ID!
-    set "CONTAINER_STOPPED=true"
+REM Buscar el ID de un contenedor que contenga la palabra "server" en su nombre
+for /f "tokens=*" %%i in ('docker ps -q --filter "name=server"') do (
+    set CONTAINER_ID=%%i
+    goto :stop_container
 )
 
-REM Comprobar si no se encontraron contenedores que coincidan con el patrón
-if "%CONTAINER_STOPPED%"=="false" (
-    echo No se encontraron contenedores que coincidan con el patrón.
-)
+echo No se encontraron contenedores que coincidan con el patrón.
+goto :end
+
+:stop_container
+REM Detener el contenedor encontrado
+docker stop %CONTAINER_ID%
+echo Contenedor detenido: docker ps --format "{{.Names}}"
 
 :end
