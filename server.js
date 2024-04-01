@@ -103,7 +103,7 @@ app.post('/register-node', (req, res) => {
 const checkAndLaunchServers = async () => {
     const formattedTime = new Date().toISOString();
     try {
-        if (SERVERS.length < 3) {
+        if (SERVERS.length < 3) {///// pingg  y al if 
             console.log(`[${formattedTime}] Se lanzarán nuevos servidores.`);
             runScript2(); // Llama al método para ejecutar el script2.bat y lanzar nuevos servidores
         } else {
@@ -115,11 +115,12 @@ const checkAndLaunchServers = async () => {
 };
 
 // Función para ejecutar el script2.bat y lanzar nuevos servidores
+//sacar random y cambiar nombres
 function runScript2() {
     const formattedTime = new Date().toISOString();
     console.log(`[${formattedTime}] Hay menos de 3 Contenedores Servidores. Se lanzarán nuevos Contenedores de Servidores`);
 
-    const scriptPath = 'script2.bat';
+    const scriptPath = 'Crear_Contenedor_Automatico.bat';
 
     // Ejecuta el script2.bat utilizando spawn
     const batProcess = spawn('cmd', ['/c', scriptPath]);
