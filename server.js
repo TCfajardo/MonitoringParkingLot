@@ -120,7 +120,7 @@ function runScript2() {
     const formattedTime = new Date().toISOString();
     console.log(`[${formattedTime}] Hay menos de 3 Contenedores Servidores. Se lanzarán nuevos Contenedores de Servidores`);
 
-    const scriptPath = 'Crear_Contenedor_Automatico.bat';
+    const scriptPath = 'createserver.bat';
 
     // Ejecuta el script2.bat utilizando spawn
     const batProcess = spawn('cmd', ['/c', scriptPath]);
